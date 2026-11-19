@@ -74,6 +74,11 @@
       <li><b>Inspect</b>: click a device or cable to see what it is and which signals are present.</li>
       <li>Press <b>▶ Test System</b>. Pass every requirement to earn stars: ★ pass, ★★ no hints, ★★★ no hints and at or under par cost.</li>
     </ol>
+    <h4>Random Challenge</h4>
+    <ul class="howto">
+      <li>On the home screen, pick a difficulty and <b>Build</b>, <b>Troubleshoot</b> or <b>Either</b>, then press <b>🎲 Generate</b> for a brand-new room. Every generated level is checked to be solvable before you see it.</li>
+      <li>Inside a random level, <b>🎲 New</b> rolls another one. <b>🔗 Copy link</b> (under the brief) shares that exact level.</li>
+    </ul>
     <h4>Difficulty</h4>
     <ul class="howto">
       <li><b>Novice</b> — compatible ports glow, wrong connections are blocked and explained, live signal feedback.</li>

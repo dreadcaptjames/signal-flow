@@ -301,3 +301,27 @@ details.sec summary { cursor: pointer; font-weight: 600; font-size: 13px; text-t
   .port .dot { width: 14px; height: 14px; }
   .w-hit { stroke-width: 22; }
 }
+
+/* ---------- Random challenge ---------- */
+.random-panel { background: linear-gradient(135deg, rgba(57, 208, 255, .08), rgba(124, 92, 255, .1)); border: 1px solid #2e4460; border-radius: 14px; padding: 16px 18px; max-width: 900px; }
+.rp-head h2 { margin: 0 0 4px; font-size: 20px; }
+.rp-head p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.rp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+.rp-lbl { width: 78px; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+.chip { background: var(--panel2); border: 1px solid var(--line); border-radius: 99px; padding: 6px 13px; font-size: 13px; cursor: pointer; color: var(--muted); }
+.chip:hover { border-color: #46607e; color: var(--text); }
+.chip.on { color: var(--text); border-color: var(--accent); background: #17324a; }
+.chip.on.diff-novice { border-color: var(--novice); background: #12301f; }
+.chip.on.diff-intermediate { border-color: var(--intermediate); background: #12293d; }
+.chip.on.diff-advanced { border-color: var(--advanced); background: #261a3d; }
+.chip.on.diff-pro { border-color: var(--pro); background: #3a1a17; }
+.rp-actions { margin: 4px 0 0; }
+.rp-actions .btn { padding: 9px 16px; }
+.level-code { font-size: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.level-code code { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; font-size: 11px; word-break: break-all; }
+.level-code .btn.small { margin-top: 0; }
+@media (max-width: 820px) {
+  .random-panel { padding: 14px; }
+  .rp-lbl { width: 100%; }
+  .rp-actions .btn { flex: 1; }
+}

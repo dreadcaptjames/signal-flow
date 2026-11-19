@@ -33,6 +33,7 @@
         <p>Clients describe the room. You pick the gear, run the cables, and prove the system works. Learn mic vs. line vs. speaker level, phantom power, amps, 70V, HDMI distance limits, HDBaseT, Dante &amp; PoE, USB conferencing and live production — from novice to pro.</p>
         <div class="hero-stats" id="hero-stats"></div>
       </div>
+      <div id="random-panel" class="random-panel"></div>
       <div id="levels"></div>
     </section>
 
@@ -47,6 +48,7 @@
         </div>
         <div class="spacer"></div>
         <div id="g-cost" class="cost"></div>
+        <button id="btn-reroll" class="btn hidden" title="Generate a new random room">🎲<span class="lbl"> New</span></button>
         <button id="btn-hint" class="btn" title="Hint">💡</button>
         <button id="btn-solution" class="btn hidden" title="Reference design">📐<span class="lbl"> Reference</span></button>
         <button id="btn-reset" class="btn ghost" title="Reset">↺<span class="lbl"> Reset</span></button>
@@ -88,6 +90,7 @@
   <script src="js/devices.js"></script>
   <script src="js/scenarios.js"></script>
   <script src="js/engine.js"></script>
+  <script src="js/generator.js"></script>
   <script src="js/guide.js"></script>
   <script src="js/app.js"></script>
 </body>

@@ -23,7 +23,15 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } },
   };
   const progress = () => store.get(PKEY, {});
+  const randomDone = () => store.get('sft.randomDone', []);
+  const isDone = (id) => (SF.parseRandomId(id) ? randomDone().includes(id) : !!progress()[id]);
   function recordStars(id, stars) {
+    if (SF.parseRandomId(id)) {
+      const list = randomDone().filter((x) => x !== id);
+      list.push(id);
+      store.set('sft.randomDone', list.slice(-500));
+      return;
+    }
     const p = progress();
     if (!p[id] || p[id] < stars) p[id] = stars;
     store.set(PKEY, p);
@@ -76,6 +84,7 @@
   // ---------------- Home ----------------
   function showHome() {
     G = null;
+    setHash(null);
     $('#game').classList.add('hidden');
     $('#home').classList.remove('hidden');
     const p = progress();
@@ -83,6 +92,7 @@
     const got = SF.SCENARIOS.reduce((s, x) => s + (p[x.id] || 0), 0);
     const done = SF.SCENARIOS.filter((x) => p[x.id]).length;
     $('#hero-stats').innerHTML = `<div class="stat"><b>${done}/${SF.SCENARIOS.length}</b><span>systems commissioned</span></div><div class="stat"><b>${got}/${total}</b><span>stars</span></div>`;
+    renderRandomPanel();
     $('#levels').innerHTML = SF.DIFF_ORDER.map((dk) => {
       const list = SF.SCENARIOS.filter((s) => s.diff === dk);
       return `<div class="level-group diff-${dk}">
@@ -97,6 +107,34 @@
         }).join('')}</div></div>`;
     }).join('');
   }
+  function setHash(id) {
+    try { history.replaceState(null, '', id ? '#' + id : location.pathname + location.search); } catch (e) { /* file:// etc. */ }
+  }
+
+  function renderRandomPanel() {
+    const o = store.get('sft.randOpts', { diff: 'novice', mode: 'mix' });
+    const last = store.get('sft.lastRandom', null);
+    const lastScn = last && store.get(SKEY(last), null) ? SF.generateScenario(last) : null;
+    const done = randomDone().length;
+    const chip = (group, val, label) => `<button class="chip ${o[group] === val ? 'on' : ''} ${group === 'diff' ? 'diff-' + val : ''}" data-rgroup="${group}" data-rval="${val}">${label}</button>`;
+    $('#random-panel').innerHTML = `
+      <div class="rp-head"><h2>🎲 Random Challenge</h2><p>A freshly generated room, every time — always solvable. ${done ? `<b>${done}</b> random system${done > 1 ? 's' : ''} commissioned so far.` : ''}</p></div>
+      <div class="rp-row"><span class="rp-lbl">Difficulty</span>${SF.DIFF_ORDER.map((d) => chip('diff', d, DIFFS[d].label)).join('')}</div>
+      <div class="rp-row"><span class="rp-lbl">Type</span>${chip('mode', 'build', '🛠 Build')}${chip('mode', 'troubleshoot', '🔧 Troubleshoot')}${chip('mode', 'mix', '🔀 Either')}</div>
+      <div class="rp-row rp-actions"><button class="btn primary" id="rp-go">🎲 Generate</button>
+        ${lastScn ? `<button class="btn" id="rp-continue">↩ Continue: ${esc(lastScn.title.replace('🎲 ', ''))} <small>${DIFFS[lastScn.diff].label}</small></button>` : ''}</div>`;
+    $('#rp-go').onclick = () => { const x = store.get('sft.randOpts', { diff: 'novice', mode: 'mix' }); openScenario(SF.randomId(x.diff, x.mode)); };
+    const c = $('#rp-continue'); if (c) c.onclick = () => openScenario(last);
+  }
+  $('#random-panel').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rgroup]');
+    if (!b) return;
+    const o = store.get('sft.randOpts', { diff: 'novice', mode: 'mix' });
+    o[b.dataset.rgroup] = b.dataset.rval;
+    store.set('sft.randOpts', o);
+    renderRandomPanel();
+  });
+
   $('#levels').addEventListener('click', (e) => {
     const c = e.target.closest('[data-scn]');
     if (c) openScenario(c.dataset.scn);
@@ -107,7 +145,15 @@
   let zoom = 1;
 
   function openScenario(id) {
-    const scn = SF.SCENARIOS.find((s) => s.id === id);
+    const scn = SF.SCENARIOS.find((s) => s.id === id) || SF.generateScenario(id);
+    if (!scn) { showHome(); toast('Couldn\'t open that level.', 'error'); return; }
+    if (scn.random) {
+      const prev = store.get('sft.lastRandom', null);
+      if (prev && prev !== id) store.del(SKEY(prev));
+      store.set('sft.lastRandom', id);
+      setHash(id);
+    } else setHash(null);
+    $('#btn-reroll').classList.toggle('hidden', !scn.random);
     const saved = store.get(SKEY(id), null);
     const base = saved && saved.devices ? saved : Object.assign(SF.initialState(scn), { hintsUsed: 0, tests: 0, sawSolution: false });
     G = Object.assign(
@@ -165,7 +211,7 @@
     const left = G.scn.hints.length - G.hintsUsed;
     $('#btn-hint').innerHTML = left > 0 ? `💡<span class="lbl"> Hint</span> <small>${left}</small>` : '💡<span class="lbl"> No hints</span>';
     $('#btn-hint').disabled = left <= 0;
-    const canSol = G.sawSolution || progress()[G.scn.id] || G.tests >= 3;
+    const canSol = G.sawSolution || isDone(G.scn.id) || G.tests >= 3;
     $('#btn-solution').classList.toggle('hidden', !canSol);
   }
 
@@ -197,12 +243,21 @@
       </div>`;
     }).join('')).join('');
 
+    const codeLine = s.random ? `<div class="sec level-code"><span class="muted small">Level code</span> <code>${esc(s.id)}</code> <button class="btn small" id="copy-link">🔗 Copy link</button></div>` : '';
     $('#left').innerHTML = `<div id="brief-pane">
       <details class="sec" open><summary>${s.mode === 'troubleshoot' ? 'Ticket' : 'Client Brief'}</summary><div class="brief">${s.brief}</div></details>
       ${hints ? `<div class="sec hints">${hints}</div>` : ''}
-      <details class="sec"><summary>Site Survey (cable distances)</summary>${survey}<p class="muted small">Cables between devices in the same zone are ~${s.sameZone != null ? s.sameZone : 3} m.</p></details></div>
+      <details class="sec"><summary>Site Survey (cable distances)</summary>${survey}<p class="muted small">Cables between devices in the same zone are ~${s.sameZone != null ? s.sameZone : 3} m.</p></details>${codeLine}</div>
       <div class="sec" id="gear-pane"><div class="sec-title">${s.mode === 'troubleshoot' ? 'Spare Parts' : 'Equipment'}</div><div class="palette">${pal}</div></div>`;
   }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#copy-link') || !G) return;
+    const url = location.href.split('#')[0] + '#' + G.scn.id;
+    const done = () => toast('🔗 Link copied — anyone with it gets this exact level.');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => toast(esc(url)));
+    else toast(esc(url));
+  });
 
   function renderRight() {
     renderChecklist();
@@ -778,6 +833,11 @@
   });
 
   $('#btn-test').onclick = runTest;
+  $('#btn-reroll').onclick = () => {
+    const go = () => openScenario(SF.randomId(G.scn.diff, G.scn.randomMode || 'mix'));
+    if (G.cables.length && !isDone(G.scn.id) && G.scn.mode === 'build') confirmBox('Generate a new room?', 'Your work on this one will be discarded.', '🎲 New room', go);
+    else go();
+  };
 
   function runTest() {
     cancelPending();
@@ -799,7 +859,7 @@
     const issues = ev.an.issues.filter((i) => i.level !== 'info');
     const infos = ev.an.issues.filter((i) => i.level === 'info');
     const idx = SF.SCENARIOS.indexOf(G.scn);
-    const next = SF.SCENARIOS[idx + 1];
+    const next = G.scn.random ? null : SF.SCENARIOS[idx + 1];
     const reqRows = ev.results.map((r) => `<li class="${r.pass ? 'ok' : 'no'}"><span>${r.pass ? '✅' : '❌'}</span><span>${esc(r.req.label)}<small>${esc(r.detail)}</small></span></li>`).join('');
     const hideCauses = G.scn.diff === 'pro';
     const issueRows = hideCauses
@@ -818,9 +878,11 @@
         <button class="btn ghost" data-close>${ev.pass ? 'Keep looking' : 'Back to work'}</button>
         ${!ev.pass && G.hintsUsed < G.scn.hints.length ? '<button class="btn" id="res-hint">💡 Take a hint</button>' : ''}
         ${ev.pass && next ? `<button class="btn primary" id="res-next">Next: ${esc(next.title)} →</button>` : ''}
-        ${ev.pass && !next ? '<button class="btn primary" id="res-home">All scenarios</button>' : ''}
+        ${ev.pass && G.scn.random ? '<button class="btn primary" id="res-reroll">🎲 Another one</button>' : ''}
+        ${ev.pass && !next && !G.scn.random ? '<button class="btn primary" id="res-home">All scenarios</button>' : ''}
       </div>`, ev.pass ? 'pass' : 'fail');
     const rh = $('#res-hint'); if (rh) rh.onclick = () => { closeModal(); $('#btn-hint').click(); };
+    const rr = $('#res-reroll'); if (rr) rr.onclick = () => { closeModal(); openScenario(SF.randomId(G.scn.diff, G.scn.randomMode || 'mix')); };
     const rn = $('#res-next'); if (rn) rn.onclick = () => { closeModal(); openScenario(next.id); };
     const rho = $('#res-home'); if (rho) rho.onclick = () => { closeModal(); showHome(); };
   }
@@ -828,5 +890,7 @@
   // expose for debugging/tests
   window.SFApp = { get state() { return G; }, openScenario, runTest, showHome };
 
-  showHome();
+  const startId = decodeURIComponent((location.hash || '').slice(1));
+  if (startId && (SF.parseRandomId(startId) || SF.SCENARIOS.some((x) => x.id === startId))) openScenario(startId);
+  else showHome();
 })();

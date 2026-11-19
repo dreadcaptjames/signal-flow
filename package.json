@@ -1,5 +1,5 @@
 {
   "name": "signal-flow-trainer",
   "private": true,
-  "scripts": { "test": "node tests/scenarios.test.js" }
+  "scripts": { "test": "node tests/scenarios.test.js && node tests/generator.test.js" }
 }

@@ -24,7 +24,15 @@ A browser game for practicing **commercial AV signal flow**. Each level is a cli
 | **Advanced** | No glow and no live feedback: you find out when you press **Test System**. Distances matter. |
 | **Pro** | Tight budgets and multi-fault tickets. The test tells you how many problems there are, not where they are. |
 
-There are 13 scenarios (Build and Troubleshoot) across the four levels. Stars: ★ for passing, ★★ for passing without hints, ★★★ for no hints and coming in at or under the par cost. Progress is saved in your browser.
+### 🎲 Random Challenge
+
+Pick a difficulty and Build, Troubleshoot or Either, then press **Generate** for a new room. The generator chooses a room type (huddle room, boardroom, classroom, café/retail, lecture hall or multipurpose hall), the features the client needs, and random cable distances. It builds a working reference design at the same time, adding HDBaseT or USB extenders when a run is too long.
+
+Troubleshooting levels start from that working design and break it with realistic faults: missing cables, a mixer without phantom power, an 8Ω amp on a 70V line, a switch without PoE, a removed extender, a mic plugged into a speaker, a speaker output into a line input, or HDBaseT plugged into a network switch. The ticket lists the symptoms users would notice.
+
+Every generated level is checked with the simulation engine (the reference passes, the starting point doesn't) before you see it. Levels are seeded, so **🔗 Copy link** shares the exact same level, e.g. `…/signal-flow/#rnd-advanced-build-12345`.
+
+There are 13 hand-built scenarios (Build and Troubleshoot) across the four levels. Stars: ★ for passing, ★★ for passing without hints, ★★★ for no hints and coming in at or under the par cost. Progress is saved in your browser.
 
 ## How to play
 
@@ -56,12 +64,13 @@ js/ports.js         signal/connector types and connection rules
 js/devices.js       equipment catalog (ports, internal routing, prices)
 js/scenarios.js     levels: briefs, zones/distances, palettes, requirements, hints, reference solutions
 js/engine.js        signal-flow simulation and grading
+js/generator.js     random scenario generator (build + troubleshoot)
 js/guide.js         Field Guide and How-to-Play text
 js/app.js           UI (canvas, wiring, inspector, testing, progress)
 tests/              node test that checks every level is solvable and starts unsolved
 ```
 
-Run the scenario check with `node tests/scenarios.test.js`.
+Run the checks with `node tests/scenarios.test.js` (hand-built levels) and `node tests/generator.test.js` (thousands of generated levels).
 
 ### Adding a scenario
 
