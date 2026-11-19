@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16202e"/>
+      <stop offset="1" stop-color="#0b0f15"/>
+    </linearGradient>
+    <linearGradient id="cable" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#3ddc84"/>
+      <stop offset=".5" stop-color="#39d0ff"/>
+      <stop offset="1" stop-color="#b57bff"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="14" fill="url(#bg)" stroke="#2a3646" stroke-width="2"/>
+  <!-- faint waveform -->
+  <path d="M8 32 q4 -9 8 0 t8 0 t8 0 t8 0 t8 0 t8 0" fill="none" stroke="#39d0ff" stroke-opacity=".16" stroke-width="2" stroke-linecap="round"/>
+  <!-- cable -->
+  <path d="M15 46 C31 46 33 18 49 18" fill="none" stroke="url(#cable)" stroke-width="5.5" stroke-linecap="round"/>
+  <!-- signal pulses -->
+  <g fill="#ffffff">
+    <circle cx="24.5" cy="43.2" r="1.6"/>
+    <circle cx="32" cy="32" r="1.6"/>
+    <circle cx="39.5" cy="20.8" r="1.6"/>
+  </g>
+  <!-- ports -->
+  <circle cx="15" cy="46" r="7" fill="#3ddc84" stroke="#0b0f15" stroke-width="3"/>
+  <circle cx="49" cy="18" r="7" fill="#b57bff" stroke="#0b0f15" stroke-width="3"/>
+  <circle cx="15" cy="46" r="2.4" fill="#0b0f15"/>
+  <circle cx="49" cy="18" r="2.4" fill="#0b0f15"/>
+</svg>
