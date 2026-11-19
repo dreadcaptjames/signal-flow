@@ -30,11 +30,16 @@
   }
 
   // ---------------- Toasts / modal ----------------
-  function toast(msg, kind = '') {
+  let pendingToast = null;
+  function clearPendingToast() { if (pendingToast) { pendingToast.remove(); pendingToast = null; } }
+  function toast(msg, kind = '', sticky = false) {
+    const box = $('#toasts');
+    while (box.children.length >= 2) box.firstElementChild.remove();
     const el = document.createElement('div');
     el.className = 'toast ' + kind;
     el.innerHTML = msg;
-    $('#toasts').appendChild(el);
+    box.appendChild(el);
+    if (sticky) return el;
     setTimeout(() => el.classList.add('out'), kind === 'error' ? 5200 : 3200);
     setTimeout(() => el.remove(), kind === 'error' ? 5800 : 3800);
   }
@@ -99,6 +104,7 @@
 
   // ---------------- Game state ----------------
   let G = null;
+  let zoom = 1;
 
   function openScenario(id) {
     const scn = SF.SCENARIOS.find((s) => s.id === id);
@@ -109,6 +115,7 @@
       { devices: base.devices, cables: base.cables, nextId: base.nextId || 1, nextCable: base.nextCable || base.cables.length + 1, hintsUsed: base.hintsUsed || 0, tests: base.tests || 0, sawSolution: !!base.sawSolution }
     );
     $('#toasts').innerHTML = '';
+    pendingToast = null;
     $('#home').classList.add('hidden');
     $('#game').classList.remove('hidden');
     $('#g-title').textContent = scn.title;
@@ -116,6 +123,8 @@
     $('#g-diff').className = 'badge diff-' + scn.diff;
     $('#g-mode').textContent = scn.mode === 'troubleshoot' ? '🔧 Troubleshoot' : '🛠 Build';
     G.analysis = SF.analyze(scn, G);
+    setMTab('canvas', true);
+    zoom = store.get('sft.zoom', isMobile() ? 0.75 : 1);
     renderAll();
     $('#canvas-wrap').scrollTo(0, 0);
     if (!saved && !store.get('sft.seenHelp', false)) { store.set('sft.seenHelp', true); showHelp(); }
@@ -154,7 +163,7 @@
     if (G.scn.par != null) parts.push(`<span class="muted">· par ${money(G.scn.par)}</span>`);
     $('#g-cost').innerHTML = parts.join(' ');
     const left = G.scn.hints.length - G.hintsUsed;
-    $('#btn-hint').textContent = left > 0 ? `💡 Hint (${left})` : '💡 Hints used';
+    $('#btn-hint').innerHTML = left > 0 ? `💡<span class="lbl"> Hint</span> <small>${left}</small>` : '💡<span class="lbl"> No hints</span>';
     $('#btn-hint').disabled = left <= 0;
     const canSol = G.sawSolution || progress()[G.scn.id] || G.tests >= 3;
     $('#btn-solution').classList.toggle('hidden', !canSol);
@@ -188,11 +197,11 @@
       </div>`;
     }).join('')).join('');
 
-    $('#left').innerHTML = `
+    $('#left').innerHTML = `<div id="brief-pane">
       <details class="sec" open><summary>${s.mode === 'troubleshoot' ? 'Ticket' : 'Client Brief'}</summary><div class="brief">${s.brief}</div></details>
       ${hints ? `<div class="sec hints">${hints}</div>` : ''}
-      <details class="sec"><summary>Site Survey (cable distances)</summary>${survey}<p class="muted small">Cables between devices in the same zone are ~${s.sameZone != null ? s.sameZone : 3} m.</p></details>
-      <div class="sec"><div class="sec-title">${s.mode === 'troubleshoot' ? 'Spare Parts' : 'Equipment'}</div><div class="palette">${pal}</div></div>`;
+      <details class="sec"><summary>Site Survey (cable distances)</summary>${survey}<p class="muted small">Cables between devices in the same zone are ~${s.sameZone != null ? s.sameZone : 3} m.</p></details></div>
+      <div class="sec" id="gear-pane"><div class="sec-title">${s.mode === 'troubleshoot' ? 'Spare Parts' : 'Equipment'}</div><div class="palette">${pal}</div></div>`;
   }
 
   function renderRight() {
@@ -214,6 +223,9 @@
     }
     const note = G.diff.live ? '<p class="muted small">Live feedback is on for this difficulty.</p>'
       : G.tested ? '<p class="muted small">Showing results from your last test.</p>' : '<p class="muted small">Press ▶ Test System to check.</p>';
+    const badge = $('#mtab-badge');
+    if (ev) { const n = ev.results.filter((r) => r.pass).length; badge.textContent = `${n}/${ev.results.length}`; badge.className = ev.pass ? 'ok' : ''; }
+    else badge.textContent = '';
     $('#checklist').innerHTML = `<div class="sec-title">Requirements</div><ul class="reqs">${rows.join('')}</ul>${note}`;
   }
 
@@ -226,6 +238,7 @@
   }
 
   function renderInspector() {
+    renderSelbar();
     const el = $('#inspector');
     const an = visibleAnalysis();
     const sel = G.selected;
@@ -280,15 +293,66 @@
       }
     }
     if (G.paletteSel) {
-      const t = SF.DEVICES[G.paletteSel];
-      el.innerHTML = `<div class="sec-title">Equipment info</div>
-        <div class="insp-head"><span class="insp-icon">${t.icon}</span><div><b>${esc(t.name)}</b><div class="muted small">${money(t.price)} · ${esc(t.cat)}</div></div></div>
-        <p class="small">${esc(t.desc)}</p>
-        <div class="iports">${t.ports.map((p) => `<div class="iport"><span class="dot" style="--c:${SF.PORT_TYPES[p.type].color}"></span><div><b>${p.dir === 'io' ? '⇄ ' : ''}${esc(p.label)}</b> <span class="muted">${p.dir === 'in' ? 'in' : p.dir === 'out' ? 'out' : 'two-way'} · ${esc(SF.PORT_TYPES[p.type].name)}${p.phantom ? ' · +48V' : ''}${p.poe ? ' · PoE' : ''}${p.needsPhantom ? ' · needs +48V' : ''}${p.needsPoE ? ' · needs PoE' : ''}</span></div></div>`).join('')}</div>`;
+      el.innerHTML = `<div class="sec-title">Equipment info</div>${templateInfo(G.paletteSel)}`;
       return;
     }
     el.innerHTML = `<div class="sec-title">Inspector</div><p class="muted small">Click a device or cable to inspect it. Click equipment in the list to read about it.</p>${legendHTML()}`;
   }
+
+  function templateInfo(type) {
+      const t = SF.DEVICES[type];
+      return `<div class="insp-head"><span class="insp-icon">${t.icon}</span><div><b>${esc(t.name)}</b><div class="muted small">${money(t.price)} · ${esc(t.cat)}</div></div></div>
+        <p class="small">${esc(t.desc)}</p>
+        <div class="iports">${t.ports.map((p) => `<div class="iport"><span class="dot" style="--c:${SF.PORT_TYPES[p.type].color}"></span><div><b>${p.dir === 'io' ? '⇄ ' : ''}${esc(p.label)}</b> <span class="muted">${p.dir === 'in' ? 'in' : p.dir === 'out' ? 'out' : 'two-way'} · ${esc(SF.PORT_TYPES[p.type].name)}${p.phantom ? ' · +48V' : ''}${p.poe ? ' · PoE' : ''}${p.needsPhantom ? ' · needs +48V' : ''}${p.needsPoE ? ' · needs PoE' : ''}</span></div></div>`).join('')}</div>`;
+  }
+
+  // Mobile: compact bar describing the current selection
+  function renderSelbar() {
+    const bar = $('#selbar');
+    const sel = G.selected;
+    const an = visibleAnalysis();
+    let html = '';
+    if (sel && sel.kind === 'device' && dev(sel.uid)) {
+      const d = dev(sel.uid), t = tpl(d);
+      const warn = an && !an.powered.get(d.uid);
+      html = `<span class="sb-name ${warn ? 'warn' : ''}">${t.icon} ${esc(d.name)}${warn ? ' · no power' : ''}</span>
+        <button class="btn" data-sb="info">Details</button>${d.fixed ? '' : '<button class="btn danger" data-sb="del">Remove</button>'}`;
+    } else if (sel && sel.kind === 'cable') {
+      const c = G.cables.find((x) => x.id === sel.id);
+      if (c) {
+        const ci = an ? an.cables.get(c.id) : null;
+        const st = ci ? ci.status : '';
+        html = `<span class="sb-name ${st === 'ok' ? 'ok' : st ? 'warn' : ''}">${st === 'ok' ? '✓' : st === 'danger' ? '🔥' : st ? '⚠' : '〰'} ${esc(dev(c.a.uid).name)} → ${esc(dev(c.b.uid).name)}</span>
+          <button class="btn" data-sb="info">Details</button><button class="btn danger" data-sb="del">Remove</button>`;
+      }
+    }
+    bar.innerHTML = html;
+    bar.classList.toggle('hidden', !html);
+  }
+  $('#selbar').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sb]');
+    if (!b || !G || !G.selected) return;
+    if (b.dataset.sb === 'info') setMTab('status');
+    else if (G.selected.kind === 'cable') removeCable(G.selected.id);
+    else deleteDevice(G.selected.uid);
+  });
+
+  // ---------------- Mobile tabs ----------------
+  const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
+  let mtab = 'canvas';
+  function setMTab(t, noRender) {
+    mtab = t;
+    const game = $('#game');
+    ['canvas', 'brief', 'gear', 'status'].forEach((x) => game.classList.toggle('m-' + x, x === t));
+    $$('#mtabs button').forEach((b) => b.classList.toggle('on', b.dataset.mtab === t));
+    if (t === 'canvas' && G && !noRender) renderCanvas();
+    const pane = t === 'canvas' ? null : t === 'status' ? $('#right') : $('#left');
+    if (pane) pane.scrollTop = 0;
+  }
+  $('#mtabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-mtab]');
+    if (b) setMTab(b.dataset.mtab);
+  });
 
   function renderCanvas() {
     const cv = $('#canvas');
@@ -296,9 +360,13 @@
     const wrap = $('#canvas-wrap');
     const width = Math.max(zones.length * L.COLW, 300);
     const maxBottom = G.devices.reduce((m, d) => Math.max(m, d.y + SF.cardHeight(d.type)), 0);
-    const height = Math.max(wrap.clientHeight - 4, maxBottom + 160, 600);
+    const height = Math.max((wrap.clientHeight - 4) / zoom, maxBottom + 160, 600);
     cv.style.width = width + 'px';
     cv.style.height = height + 'px';
+    cv.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
+    const sizer = $('#canvas-sizer');
+    sizer.style.width = width * zoom + 'px';
+    sizer.style.height = height * zoom + 'px';
     const an = visibleAnalysis();
 
     let html = zones.map((z, i) => `<div class="zone" style="left:${i * L.COLW}px;width:${L.COLW}px"><div class="zone-label">${esc(z.name)}</div></div>`).join('');
@@ -330,7 +398,7 @@
     if (!el) return null;
     const cr = $('#canvas').getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2 - cr.left, y: r.top + r.height / 2 - cr.top };
+    return { x: (r.left + r.width / 2 - cr.left) / zoom, y: (r.top + r.height / 2 - cr.top) / zoom };
   }
   function pathD(p1, s1, p2, s2) {
     const dx = Math.max(50, Math.abs(p2.x - p1.x) / 2);
@@ -394,6 +462,7 @@
 
   function tryConnect(s, t) {
     G.pending = null; G.pendingClick = false; G.mouse = null;
+    clearPendingToast();
     const bail = () => { applyGlow(); renderWires(); };
     if (s.uid === t.uid && s.port === t.port) return bail();
     const lp = linkPreview(s, t);
@@ -444,6 +513,7 @@
       const inZone = G.devices.filter((d) => d.zone === zone);
       y = inZone.reduce((m, d) => Math.max(m, d.y + SF.cardHeight(d.type) + L.GAP), L.TOP);
     }
+    if (mtab !== 'canvas') setMTab('canvas', true);
     const uid = 'd' + G.nextId++;
     G.devices.push({ uid, type, zone, x, y, name: SF.autoName(G.devices, type), fixed: false, owned: false });
     G.selected = { kind: 'device', uid };
@@ -481,7 +551,34 @@
   let drag = null; // {kind:'wire'|'device', ...}
   let raf = 0;
   const schedule = (fn) => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; fn(); }); };
-  const canvasPt = (e) => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const canvasPt = (e) => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) / zoom, y: (e.clientY - r.top) / zoom }; };
+
+  // ---------------- Zoom ----------------
+  function setZoom(z, keepCenter = true) {
+    const wrap = $('#canvas-wrap');
+    const old = zoom;
+    z = Math.max(0.35, Math.min(1.6, Math.round(z * 100) / 100));
+    if (z === old) return;
+    const cx = (wrap.scrollLeft + wrap.clientWidth / 2) / old, cy = (wrap.scrollTop + wrap.clientHeight / 2) / old;
+    zoom = z;
+    store.set('sft.zoom', zoom);
+    renderCanvas();
+    if (keepCenter) wrap.scrollTo(cx * z - wrap.clientWidth / 2, cy * z - wrap.clientHeight / 2);
+  }
+  function fitZoom() {
+    const wrap = $('#canvas-wrap');
+    const width = G.scn.zones.length * L.COLW;
+    setZoom(Math.min(1, (wrap.clientWidth - 8) / width), false);
+    wrap.scrollTo(0, 0);
+  }
+  $('#zoom-in').onclick = () => setZoom(zoom + 0.15);
+  $('#zoom-out').onclick = () => setZoom(zoom - 0.15);
+  $('#zoom-fit').onclick = fitZoom;
+  $('#canvas-wrap').addEventListener('wheel', (e) => {
+    if (!G || !(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    setZoom(zoom * (e.deltaY < 0 ? 1.1 : 0.9));
+  }, { passive: false });
 
   canvas.addEventListener('pointerdown', (e) => {
     if (!G || e.button > 0) return;
@@ -568,15 +665,24 @@
         const pd = dev(s.uid);
         G.selected = { kind: 'device', uid: s.uid };
         renderRight();
-        toast(`Now click the port to connect <b>${esc(pd.name)} › ${esc(SF.portOf(pd, s.port).label)}</b> to. <span class="muted">(Esc to cancel)</span>`);
+        clearPendingToast();
+        pendingToast = toast(`🔌 ${isMobile() ? 'Tap' : 'Click'} where <b>${esc(pd.name)} › ${esc(SF.portOf(pd, s.port).label)}</b> should go. <span class="muted">(${isMobile() ? 'tap empty space' : 'Esc'} to cancel)</span>`, 'pending', true);
         return;
       }
       cancelPending();
     }
   });
 
+  window.addEventListener('pointercancel', () => {
+    if (!G || !drag) return;
+    const dr = drag; drag = null;
+    if (dr.kind === 'device') afterChange();
+    else cancelPending();
+  });
+
   function cancelPending() {
     G.pending = null; G.pendingClick = false; G.mouse = null;
+    clearPendingToast();
     applyGlow();
     renderWires();
   }
@@ -600,6 +706,13 @@
     const add = e.target.closest('[data-add]');
     if (add) { addDevice(add.dataset.add); return; }
     const item = e.target.closest('.pal-item');
+    if (item && isMobile()) {
+      const type = item.dataset.type;
+      const disabled = item.classList.contains('empty');
+      openModal(`${templateInfo(type)}<div class="modal-actions"><button class="btn ghost" data-close>Close</button><button class="btn primary" id="pm-add" ${disabled ? 'disabled' : ''}>+ Add to system</button></div>`);
+      $('#pm-add').onclick = () => { closeModal(); addDevice(type); };
+      return;
+    }
     if (item) {
       G.paletteSel = item.dataset.type;
       G.selected = null;
@@ -633,7 +746,7 @@
       else deleteDevice(G.selected.uid);
     }
   });
-  window.addEventListener('resize', () => { if (G) renderCanvas(); });
+  window.addEventListener('resize', () => { if (G && (!isMobile() || mtab === 'canvas')) renderCanvas(); });
 
   // ---------------- Buttons ----------------
   $('#btn-back').onclick = showHome;

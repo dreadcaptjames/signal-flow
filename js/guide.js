@@ -81,5 +81,12 @@
       <li><b>Advanced</b> — no glow, no live feedback. You find out when you test. Distances really matter.</li>
       <li><b>Pro</b> — like Advanced, with tight budgets and multi-fault troubleshooting tickets.</li>
     </ul>
-    <p class="muted">Shortcuts: <kbd>Delete</kbd> removes the selected device/cable · <kbd>Esc</kbd> cancels a cable in progress.</p>`;
+    <h4>On a phone or tablet</h4>
+    <ul class="howto">
+      <li>Use the tabs at the bottom: <b>System</b> (the wiring canvas), <b>Brief</b>, <b>Gear</b> and <b>Checks</b>.</li>
+      <li>Tap a port, then tap the port you want to connect it to.</li>
+      <li>Drag empty space to pan; use <b>− ⤢ +</b> to zoom. Drag a device by its title bar.</li>
+      <li>Tap a device or cable, then <b>Details</b> or <b>Remove</b> in the bar that pops up.</li>
+    </ul>
+    <p class="muted">Desktop shortcuts: <kbd>Ctrl</kbd>+scroll zooms · <kbd>Delete</kbd> removes the selected device/cable · <kbd>Esc</kbd> cancels a cable in progress.</p>`;
 })();

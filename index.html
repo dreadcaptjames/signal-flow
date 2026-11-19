@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Signal Flow Trainer — AV system design practice</title>
   <meta name="description" content="A game for practicing commercial AV signal flow: design and troubleshoot audio, video and conferencing systems from novice to pro.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -17,11 +17,11 @@
 </head>
 <body>
   <header class="topbar">
-    <button class="brand" id="brand" title="Home"><img class="brand-logo" src="icon.svg" alt="" width="28" height="28">Signal Flow <b>Trainer</b></button>
+    <button class="brand" id="brand" title="Home"><img class="brand-logo" src="icon.svg" alt="" width="28" height="28"><span class="brand-text">Signal Flow <b>Trainer</b></span></button>
     <nav>
       <button id="nav-home" class="nav-btn">Scenarios</button>
-      <button id="nav-guide" class="nav-btn">Field Guide</button>
-      <button id="nav-help" class="nav-btn">How to Play</button>
+      <button id="nav-guide" class="nav-btn"><span class="lbl-long">Field </span>Guide</button>
+      <button id="nav-help" class="nav-btn"><span class="lbl-long">How to Play</span><span class="lbl-short">Help</span></button>
     </nav>
   </header>
 
@@ -39,7 +39,7 @@
     <!-- GAME -->
     <section id="game" class="screen hidden">
       <div class="game-bar">
-        <button id="btn-back" class="btn ghost" title="Back to scenarios">← Scenarios</button>
+        <button id="btn-back" class="btn ghost" title="Back to scenarios">←<span class="lbl"> Scenarios</span></button>
         <div class="game-title">
           <span id="g-title"></span>
           <span id="g-diff" class="badge"></span>
@@ -47,21 +47,35 @@
         </div>
         <div class="spacer"></div>
         <div id="g-cost" class="cost"></div>
-        <button id="btn-hint" class="btn">💡 Hint</button>
-        <button id="btn-solution" class="btn hidden">📐 Reference</button>
-        <button id="btn-reset" class="btn ghost">↺ Reset</button>
-        <button id="btn-test" class="btn primary">▶ Test System</button>
+        <button id="btn-hint" class="btn" title="Hint">💡</button>
+        <button id="btn-solution" class="btn hidden" title="Reference design">📐<span class="lbl"> Reference</span></button>
+        <button id="btn-reset" class="btn ghost" title="Reset">↺<span class="lbl"> Reset</span></button>
+        <button id="btn-test" class="btn primary" title="Test System">▶<span class="lbl-test"> Test</span><span class="lbl"> System</span></button>
       </div>
       <div class="game-body">
         <aside id="left" class="panel"></aside>
-        <div id="canvas-wrap">
-          <div id="canvas"></div>
+        <div id="canvas-area">
+          <div id="canvas-wrap">
+            <div id="canvas-sizer"><div id="canvas"></div></div>
+          </div>
+          <div class="zoom-ctl">
+            <button id="zoom-out" title="Zoom out">−</button>
+            <button id="zoom-fit" title="Fit to screen">⤢</button>
+            <button id="zoom-in" title="Zoom in">+</button>
+          </div>
+          <div id="selbar" class="hidden"></div>
         </div>
         <aside id="right" class="panel">
           <div id="checklist"></div>
           <div id="inspector"></div>
         </aside>
       </div>
+      <nav id="mtabs" aria-label="Game panels">
+        <button data-mtab="canvas" class="on"><span>🔌</span>System</button>
+        <button data-mtab="brief"><span>📋</span>Brief</button>
+        <button data-mtab="gear"><span>🧰</span>Gear</button>
+        <button data-mtab="status"><span>✅</span>Checks<b id="mtab-badge"></b></button>
+      </nav>
     </section>
   </main>
 
